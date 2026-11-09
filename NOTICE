@@ -1,0 +1,25 @@
+Herdr Archive
+Copyright 2026 Herdr Archive contributors
+
+This project includes modifications of Apache-2.0 source from:
+
+- Orca for Herdr, Copyright 2026 VladTemp27
+  https://github.com/VladTemp27/herdr-orca
+  The Archive layout, archive-menu and archive-sidebar adapt Orca sources.
+  Orca NOTICE is retained in licenses/orca-NOTICE.txt.
+- Herdr Mods / Better Sidebar, Copyright 2026 Tawsif Aqib
+  https://github.com/munza/herdr-mods
+  Better Sidebar is included through Orca. Its NOTICE and license are retained
+  in licenses/munza-herdr-mods-NOTICE.txt and licenses/munza-herdr-mods-LICENSE.txt.
+- Herdr Desktop
+  https://github.com/herdrdev/herdr-app
+  archive-chrome and archive-picker adapt the shipped workspace-chrome and
+  picker mods; Orca's menu and sidebar also adapt Herdr code.
+
+Bundled SVG icons include Lucide and Feather derivatives. Their ISC and MIT
+notices are retained in licenses/Lucide-Feather-LICENSE.txt.
+
+Archive modifications include persistent archive records, archive/restore
+controls, search, filtered navigation, an Archive layout, and an installer.
+See THIRD_PARTY.md for source revisions and which files are distributed.
+The signed Herdr app and the external Orca dependency mods are not distributed.

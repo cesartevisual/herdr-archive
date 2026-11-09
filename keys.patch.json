@@ -1,0 +1,22 @@
+{
+  "layout:archive": {
+    "cmd-p": "mod.open:archive-picker",
+    "cmd-shift-a": "layout.toggle:agents",
+    "cmd-shift-b": "archive-sidebar.toggle-panel",
+    "cmd-alt-]": "archive-sidebar.next-space",
+    "cmd-alt-[": "archive-sidebar.prev-space",
+    "cmd-]": "archive-sidebar.next-agent",
+    "cmd-[": "archive-sidebar.prev-agent",
+    "cmd-w": "my-tabs.close-tab",
+    "cmd-shift-w": "my-tabs.close-pane",
+    "ctrl-1": "archive-sidebar.select-space:1",
+    "ctrl-2": "archive-sidebar.select-space:2",
+    "ctrl-3": "archive-sidebar.select-space:3",
+    "ctrl-4": "archive-sidebar.select-space:4",
+    "ctrl-5": "archive-sidebar.select-space:5",
+    "ctrl-6": "archive-sidebar.select-space:6",
+    "ctrl-7": "archive-sidebar.select-space:7",
+    "ctrl-8": "archive-sidebar.select-space:8",
+    "ctrl-9": "archive-sidebar.select-space:9"
+  }
+}

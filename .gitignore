@@ -1,0 +1,9 @@
+.DS_Store
+__pycache__/
+*.pyc
+*.error
+herdr-shot.png
+node_modules/
+mods/**/gpui-kit.d.ts
+mods/**/herdr.d.ts
+mods/**/jsconfig.json
