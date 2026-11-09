@@ -6,7 +6,7 @@ A Herdr layout that keeps active spaces in everyday navigation and lets people a
 
 ## What you see
 
-In the stock layout, a 268 px sidebar sits beside the work area. Its 46 px header has an Archive title and search control. Below it, spaces appear under machine headings. Each row shows a number, space name, branch or folder, status color, agent count, and a ⋯ menu. Up to six active agents appear below the spaces. If every space is archived, the sidebar shows a hint to open Archive or create a space. The shipped `workspace-chrome` footer is 69 px high, followed by a visible 32 px Archive control.
+In the stock layout, a 268 px sidebar sits beside the work area. Its 46 px header has a Herdr title and search control. Below it, spaces appear under machine headings. Each row shows a number, space name, branch or folder, status color, agent count, and a ⋯ menu. Up to six active agents appear below the spaces. If every space is archived, the sidebar shows a hint to open Archive or create a space. The shipped `workspace-chrome` footer is 69 px high, followed by a visible 32 px Archive control.
 
 The work area keeps Herdr's 42 px tab strip, active terminal panes with 30 px pane headers, a 368 px Files/Changes panel, and a 28 px status strip. The archive browser is a centered dialog with a count, search field, repository-and-machine groups, and rows showing name, branch, folder, archive date, and availability. Unavailable remote spaces say **Unavailable**. Restore actions appear on each live row, each group with multiple live rows, and all shown live results.
 

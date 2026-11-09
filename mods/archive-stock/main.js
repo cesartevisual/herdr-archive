@@ -157,13 +157,13 @@ export default class ArchiveStock extends View {
   renderHeader(t) {
     const collapsed = sidebarWidth() < 160;
     const mac = window()?.platform === "macos" && !window()?.fullscreen;
-    return h_flex().id("stock-brand").size_full().bg(t.chrome).items_center().gap(6).pl(mac && !collapsed ? 76 : 9).pr(9)
+    return h_flex().id("stock-brand").size_full().bg(t.chrome).items_center().gap(6).pl(mac ? 76 : 9).pr(9)
       .when(!collapsed, (el) => el.child(div().flex_1().min_w(0).font_semibold().text_size(14).text_color(t.foreground).child("Herdr")))
       .when(!collapsed, (el) => el.child(button("stock-search", "Search spaces", () => this.openPicker(), t, false, "⌕")))
-      .when(!(mac && collapsed), (el) => el.child(button("stock-collapse", "Toggle sidebar", () => {
+      .child(button("stock-collapse", "Toggle sidebar", () => {
         const width = sidebarWidth();
-        run("layout.resize", { id: "sidebar", px: width < 160 ? 268 : mac ? 76 : 44 });
-      }, t, true, "☰")));
+        run("layout.resize", { id: "sidebar", px: width < 160 ? 268 : mac ? 116 : 44 });
+      }, t, true, "☰"));
   }
 
   spaceRow(space, index, t, collapsed, bySpace) {
