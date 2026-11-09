@@ -1,10 +1,12 @@
 # Discord announcement draft
 
-Copy the message below into Herdr's showcase/community channel after finishing server onboarding. Attach `preview.png` from this repository. This draft has not been posted.
+Copy the message below into Herdr's showcase/community channel after finishing server onboarding. Attach `preview.gif` from this repository. This draft has not been posted.
 
 ---
 
 I built **Herdr Archive** to put old spaces away and find them again later, inspired by Prowl's archived worktrees.
+
+Animated preview attached: a quick walkthrough of archiving a space, finding it in Archive, and restoring it with its tabs and terminal output intact.
 
 It now works with **stock Herdr Desktop**, with optional Orca integration:
 
@@ -15,7 +17,7 @@ It now works with **stock Herdr Desktop**, with optional Orca integration:
 
 Archiving changes visibility; it does not stop running processes or delete a checkout.
 
-Source, screenshot, and install instructions:
+Source, animated preview, and install instructions:
 https://github.com/cesartevisual/herdr-archive
 
 Tested on Herdr Desktop 0.1.14 with an isolated stock profile, plus macOS/Linux automated tests. Feedback and PRs welcome!

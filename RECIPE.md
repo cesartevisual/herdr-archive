@@ -2,7 +2,7 @@
 
 A Herdr layout that keeps active spaces in everyday navigation and lets people archive the rest without ending their terminals or agents. The default build uses Herdr's shipped interface pieces; an optional Orca variant keeps that personal layout's controls.
 
-![Herdr Archive preview](preview.png)
+![Herdr Archive preview](preview.gif)
 
 ## What you see
 

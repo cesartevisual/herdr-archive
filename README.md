@@ -2,7 +2,7 @@
 
 Archive Herdr spaces without stopping their terminals or agents. Archived spaces leave everyday navigation and stay searchable in a browser where you can restore a row, a repository group, or all shown results.
 
-![Herdr Archive](preview.png)
+![Animated preview: archive a space, find it in Archive, and restore its saved context](preview.gif)
 
 The **stock** variant is the default for a new install. It uses Herdr 0.1.14's shipped mods and needs no Orca setup. The optional **Orca** variant keeps the personal Orca layout and its custom controls.
 
