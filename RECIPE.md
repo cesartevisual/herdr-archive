@@ -1,69 +1,36 @@
 # Herdr Archive
 
-A personal Orca layout with a compact Archive control. Spaces selected for
-archive disappear from everyday navigation while their terminals and agents
-continue running. The archive browser lets people search, group, and restore
-them.
+A Herdr layout that keeps active spaces in everyday navigation and lets people archive the rest without ending their terminals or agents. The default build uses Herdr's shipped interface pieces; an optional Orca variant keeps that personal layout's controls.
 
 ![Herdr Archive preview](preview.png)
 
 ## What you see
 
-The window keeps Orca's left sidebar, central terminal panes, and 28 px
-bottom status row. The sidebar carries the existing space and agent views;
-its archive entry opens a centered dialog. In that dialog, a title and count
-sit above a search field and grouped space rows. Each row shows its space
-name, repository or folder, branch, machine when present, and archive date.
-Unreachable remote spaces show **Unavailable**. Restore controls operate on
-individual rows, groups, or all shown results. The current Orca colors and type come from the personal profile
-and the active Herdr theme; the layout does not hard-code a new palette.
+In the stock layout, a 268 px sidebar sits beside the work area. Its 46 px header has an Archive title and search control. Below it, spaces appear under machine headings. Each row shows a number, space name, branch or folder, status color, agent count, and a ⋯ menu. Up to six active agents appear below the spaces. If every space is archived, the sidebar shows a hint to open Archive or create a space. The shipped `workspace-chrome` footer is 69 px high, followed by a visible 32 px Archive control.
+
+The work area keeps Herdr's 42 px tab strip, active terminal panes with 30 px pane headers, a 368 px Files/Changes panel, and a 28 px status strip. The archive browser is a centered dialog with a count, search field, repository-and-machine groups, and rows showing name, branch, folder, archive date, and availability. Unavailable remote spaces say **Unavailable**. Restore actions appear on each live row, each group with multiple live rows, and all shown live results.
 
 ## How it behaves
 
-Archiving records a space's ID and metadata under `space-archive.v1`, then
-removes that ID from Archive's sidebar and picker views. It does not stop
-running agents; working, blocked, done, and idle statuses continue to render
-through the inherited Orca agent UI. Archiving the focused space selects
-another visible space if one exists. An Undo action reverses the latest
-archive or restore in the open dialog. Search matches name, branch, folder,
-repository, and machine. Records group by repository and machine; a missing
-remote space remains archived and cannot be restored until it is live again.
-The Archive layout's `cmd-p` opens its picker and `ctrl-1` through `ctrl-9`
-select visible sidebar spaces. The inherited Orca shortcuts remain in its
-layout-specific key section.
+The sidebar shows live, unarchived spaces and agents. Working, blocked, done, and idle statuses use the Herdr theme's status colors; agent rows show a colored status dot. The ⋯ menu offers Rename, New tab, Open worktree, and Archive space. Archiving stores the space's ID and display metadata under `space-archive.v1` and hides it from the sidebar and picker; it does not close a terminal, stop an agent, or delete a worktree. If the focused space is archived, another available space is selected when possible.
+
+Search opens a picker of active spaces. Matching archived spaces appear when a query is entered; choosing one opens the Archive dialog for explicit restoration. The dialog searches name, folder, branch, repository, and machine. It can restore one row, a repository group, or the shown results, and offers Undo for its latest action. A remote space that is unavailable remains archived until the machine and space return. Stock shortcuts include `cmd-p` for the picker, `cmd-alt-[` / `cmd-alt-]` for spaces, `cmd-[` / `cmd-]` for agents, and `ctrl-1` through `ctrl-9` for visible spaces.
 
 ## Built from
 
-`layouts/archive.json` is a row body containing the sidebar, terminal area,
-and a 28 px status row, plus hidden service blocks. It starts from the local
-Orca layout. `archive-chrome` draws the window chrome; `archive-sidebar`
-draws and controls spaces and agents; `archive-menu` provides space actions;
-`archive-picker` provides keyboard navigation; `space-archive` owns the
-dialog and state model. `keys.patch.json` adds only Archive layout bindings.
-The layout also references the existing Orca mods listed in README. The
-archive state functions use Herdr `shared`, `setShared`, `spaces`, `panes`,
-`run`, and `openOverlay`. The menu uses Herdr `exec` for existing Git
-worktree actions. Icons are local SVG assets in the copied mods.
+`layouts/archive-stock.json` has a root row with `sidebar` and `work` columns. The sidebar places `archive-stock` in its header and spaces blocks, then shipped `workspace-chrome` and a `space-archive` controller. The work column uses shipped `tabs`, `pane`, `files`, `changes`, and `workspace-status` mods. The custom `archive-stock` mod renders the sidebar, menu, and picker. `space-archive` renders the browser and holds pure state transformations in `model.js` plus a Herdr host adapter in `state.js`. `keys.stock.patch.json` adds layout-scoped bindings. The menu opens the shipped `worktree` mod and the sidebar uses Herdr `exec("git", …)` to derive repository grouping.
+
+The optional Orca layout is `layouts/archive.json`, with its archive-specific copies of Orca chrome, sidebar, menu, and picker and the same `space-archive` browser. Its separate `keys.patch.json` holds its layout bindings. Both variants use Herdr `shared`, `setShared`, `spaces`, `panes`, `run`, and `openOverlay`; neither edits `shared.json` directly.
 
 ## Watch out
 
-Herdr app 0.1.14 and the Orca layout dependencies linked in README are required. Do not assume
-these mods exist in a default Herdr profile. The installer checks them and
-refuses name or key collisions. Herdr writes shared state itself; never
-replace all of `shared.json` to implement this feature. Do not modify shipped
-mods, layouts, or the signed application. Archive metadata is independent of
-space lifetime: an unavailable remote space must remain in the archive until
-it reconnects. Verified source revisions and retained notices are listed in THIRD_PARTY.md and NOTICE.
+The stock build targets Herdr app 0.1.14 and requires the shipped mods named in README. The Orca variant additionally requires its listed personal mods and should not be assumed present in a fresh profile. Never overwrite an occupied mod, layout, or key binding. Uninstall must preserve Herdr-generated editor files and user additions by moving remaining mod folders to a unique backup directory. An unavailable remote space must keep its archive record until it is live again. The copied Orca files and bundled icon notices are documented in THIRD_PARTY.md and NOTICE.
 
 ## Done when
 
-- `npm test` passes all state and installer tests.
-- `herdr-app check` passes for each of the five installed mods.
-- Archive layout activates without a `.error` file and retains Orca panes,
-  sidebar, picker, status, and menu behavior.
-- Archiving a live space hides it from sidebar and picker, keeps its running
-  terminal and agents, and shows a searchable record in the browser.
-- Restoring the space reveals it again. An unavailable remote record remains
-  preserved until the remote space returns.
-- Uninstall switches to the previous layout if needed, removes only owned
-  files and keys, and preserves archived shared state.
+- `npm test` passes state and both installer-variant suites.
+- `herdr-app check` passes for `archive-stock` and `space-archive` in a stock profile, and for each copied Orca mod when using that variant.
+- Activating the stock layout shows the sidebar, Archive control, tabs, panes, Files/Changes panel, and status strip without a layout or mod `.error` file.
+- Archiving a live space hides it from the sidebar and picker while its terminal and agents keep running; search finds its record and restoring it makes it visible again.
+- An unavailable remote record remains intact until the remote space returns.
+- Uninstall returns to the previous layout when Archive is active, preserves archived shared state and unowned mod files, and permits reinstall.

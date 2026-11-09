@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="560" height="350" viewBox="0 0 560 350">
+  <rect width="560" height="350" rx="12" fill="#171c23"/>
+  <rect x="9" y="9" width="137" height="332" rx="7" fill="#222a35"/>
+  <circle cx="29" cy="29" r="9" fill="#5a8ca5"/>
+  <text x="46" y="33" fill="#e2eaf1" font-family="sans-serif" font-weight="600" font-size="13">Herdr</text>
+  <text x="20" y="72" fill="#91a4b7" font-family="sans-serif" font-size="9">SPACES</text>
+  <text x="20" y="96" fill="#7c8fa2" font-family="sans-serif" font-size="8">THIS COMPUTER</text>
+  <rect x="15" y="104" width="125" height="35" rx="5" fill="#344f62"/>
+  <circle cx="28" cy="120" r="3" fill="#76cbb8"/>
+  <text x="39" y="119" fill="#e2eaf1" font-family="sans-serif" font-size="9">client app</text>
+  <text x="39" y="131" fill="#9eb2c3" font-family="sans-serif" font-size="7">feature/archive</text>
+  <circle cx="28" cy="154" r="3" fill="#6e8192"/>
+  <text x="39" y="156" fill="#becbd7" font-family="sans-serif" font-size="9">docs</text>
+  <text x="20" y="198" fill="#7c8fa2" font-family="sans-serif" font-size="8">AGENTS</text>
+  <circle cx="28" cy="216" r="3" fill="#76cbb8"/>
+  <text x="39" y="219" fill="#becbd7" font-family="sans-serif" font-size="8">Codex · client app</text>
+  <rect x="15" y="311" width="125" height="22" rx="5" fill="#345d56"/>
+  <text x="25" y="326" fill="#d8f4e6" font-family="sans-serif" font-size="10">Archive (17)</text>
+  <rect x="154" y="9" width="397" height="36" rx="6" fill="#222a35"/>
+  <rect x="168" y="23" width="84" height="9" rx="4" fill="#b9c8d5"/>
+  <rect x="264" y="23" width="66" height="9" rx="4" fill="#73889b"/>
+  <rect x="154" y="53" width="397" height="260" rx="7" fill="#222a35"/>
+  <rect x="171" y="73" width="164" height="9" rx="4" fill="#e2eaf1"/>
+  <rect x="171" y="100" width="269" height="7" rx="3" fill="#526579"/>
+  <rect x="171" y="117" width="233" height="7" rx="3" fill="#526579"/>
+  <rect x="154" y="321" width="397" height="20" rx="6" fill="#222a35"/>
+</svg>

@@ -172,7 +172,7 @@ export default class SpaceArchive extends View {
         .cursor_pointer().tooltip(label).role("button").accessibility_label(label)
         .when(collapsed, (el) => el.w(32).flex_none().justify_center())
         .on_click(() => openArchive())
-        .child(svg("mods/archive-chrome/archive.svg").size(14).flex_none())
+      .child(svg("mods/space-archive/archive.svg").size(14).flex_none())
         .when(!collapsed, (el) => el.child(div().truncate().child(label))));
   }
 

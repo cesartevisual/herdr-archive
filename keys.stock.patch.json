@@ -1,0 +1,18 @@
+{
+  "layout:archive-stock": {
+    "cmd-p": "archive-stock.open-picker",
+    "cmd-alt-]": "archive-stock.next-space",
+    "cmd-alt-[": "archive-stock.prev-space",
+    "cmd-]": "archive-stock.next-agent",
+    "cmd-[": "archive-stock.prev-agent",
+    "ctrl-1": "archive-stock.select-space:1",
+    "ctrl-2": "archive-stock.select-space:2",
+    "ctrl-3": "archive-stock.select-space:3",
+    "ctrl-4": "archive-stock.select-space:4",
+    "ctrl-5": "archive-stock.select-space:5",
+    "ctrl-6": "archive-stock.select-space:6",
+    "ctrl-7": "archive-stock.select-space:7",
+    "ctrl-8": "archive-stock.select-space:8",
+    "ctrl-9": "archive-stock.select-space:9"
+  }
+}

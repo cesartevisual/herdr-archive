@@ -31,7 +31,11 @@ export function archiveSpaces(ids, options = {}) {
   const wanted = new Set(idsOf(ids));
   const live = spaces();
   const paneList = panes();
-  const parents = shared("archive-sidebar.space-parents") ?? shared("better-sidebar.space-parents") ?? {};
+  const parents = {
+    ...(shared("better-sidebar.space-parents") ?? {}),
+    ...(shared("archive-sidebar.space-parents") ?? {}),
+    ...(shared("archive-stock.space-parents") ?? {}),
+  };
   const snapshots = live.filter((space) => wanted.has(space.id)).map((space) => {
     const tabs = new Set(space.tabs.map((tab) => tab.id));
     const first = paneList.find((pane) => tabs.has(pane.tab) && pane.cwd);

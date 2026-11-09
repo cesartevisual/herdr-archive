@@ -1,4 +1,6 @@
 import importlib.util
+from contextlib import redirect_stdout
+from io import StringIO
 import json
 from pathlib import Path
 import tempfile
@@ -22,6 +24,8 @@ class InstallerTests(unittest.TestCase):
         self.home.mkdir()
         (self.package / "layouts").mkdir(parents=True)
         (self.package / "layouts" / "archive.json").write_text('{"id":"root"}\n')
+        (self.package / "layouts" / "archive-stock.json").write_text('{"id":"stock"}\n')
+        (self.package / "layouts" / "archive-stock.svg").write_text("<svg/>")
         for name in archive.MODS:
             folder = self.package / "mods" / name
             folder.mkdir(parents=True)
@@ -29,10 +33,18 @@ class InstallerTests(unittest.TestCase):
             (folder / "gpui-kit.d.ts").write_text("generated types")
             (folder / "jsconfig.json").write_text("{}")
             (folder / ".DS_Store").write_bytes(b"metadata")
+        stock_folder = self.package / "mods" / "archive-stock"
+        stock_folder.mkdir(parents=True)
+        (stock_folder / "main.js").write_text("export default {}\n")
+        (self.package / "keys.stock.patch.json").write_text(json.dumps({"layout:archive-stock": {"cmd-p": "mod.open:archive-stock"}}))
         for name in archive.REQUIRED_MODS:
             folder = self.home / "mods" / name
             folder.mkdir(parents=True)
             (folder / "main.js").write_bytes(b"existing Orca mod")
+        for name in archive.STOCK_REQUIRED_MODS:
+            folder = self.home / "mods" / name
+            folder.mkdir(parents=True)
+            (folder / "main.js").write_bytes(b"shipped Herdr mod")
         self.shared = b'{"layout":"main","other":{"keep":1}}\n'
         (self.home / "shared.json").write_bytes(self.shared)
         self.keys = b'{"global":{"cmd-p":"mod.open:picker"}}\n'
@@ -42,18 +54,68 @@ class InstallerTests(unittest.TestCase):
         self.addCleanup(self.root_patch.stop)
 
     def test_dry_run_install_idempotent_and_uninstall_preserve_shared(self):
-        archive.install(self.home, True)
+        archive.install(self.home, True, "orca")
         self.assertFalse((self.home / archive.MANIFEST).exists())
-        archive.install(self.home, False)
+        archive.install(self.home, False, "orca")
         self.assertFalse((self.home / "mods" / "archive-sidebar" / "gpui-kit.d.ts").exists())
         self.assertFalse((self.home / "mods" / "archive-sidebar" / ".DS_Store").exists())
         first_manifest = (self.home / archive.MANIFEST).read_bytes()
-        archive.install(self.home, False)
+        archive.install(self.home, False, "orca")
         self.assertEqual((self.home / archive.MANIFEST).read_bytes(), first_manifest)
         archive.uninstall(self.home, False)
         self.assertEqual((self.home / "shared.json").read_bytes(), self.shared)
         self.assertEqual((self.home / "keys.json").read_bytes(), self.keys)
         self.assertFalse((self.home / "layouts" / "archive.json").exists())
+
+    def test_stock_is_default_on_fresh_profile_without_orca_mods(self):
+        for name in archive.REQUIRED_MODS:
+            (self.home / "mods" / name / "main.js").unlink()
+        archive.install(self.home, False)
+        manifest = json.loads((self.home / archive.MANIFEST).read_text())
+        self.assertEqual(manifest["variant"], "stock")
+        self.assertIn("layouts/archive-stock.svg", manifest["files"])
+        self.assertIn("mods/archive-stock/main.js", manifest["files"])
+        self.assertIn("mods/space-archive/main.js", manifest["files"])
+        self.assertNotIn("layouts/archive.json", manifest["files"])
+        self.assertFalse((self.home / "mods" / "archive-sidebar").exists())
+        self.assertEqual(json.loads((self.home / "keys.json").read_text())["layout:archive-stock"]["cmd-p"], "mod.open:archive-stock")
+        output = StringIO()
+        with redirect_stdout(output):
+            self.assertEqual(archive.main(["status", "--home", str(self.home)]), 0)
+        self.assertEqual(json.loads(output.getvalue())["variant"], "stock")
+        archive.install(self.home, False)  # existing variant is retained
+        with self.assertRaisesRegex(archive.InstallError, "uninstall before"):
+            archive.install(self.home, False, "orca")
+
+    def test_stock_activation_and_uninstall_use_stock_layout(self):
+        archive.install(self.home, False)
+        with patch.object(archive, "switch") as switch:
+            archive.activate(self.home, False)
+            switch.assert_called_once_with(self.home, "archive-stock")
+        (self.home / "layouts" / "main.json").write_text("{}")
+        (self.home / "shared.json").write_text('{"layout":"archive-stock"}')
+        with patch.object(archive, "switch") as switch:
+            archive.uninstall(self.home, False)
+            switch.assert_called_once_with(self.home, "main")
+        self.assertFalse((self.home / "layouts" / "archive-stock.json").exists())
+
+    def test_stock_preview_is_required_for_package(self):
+        (self.package / "layouts" / "archive-stock.svg").unlink()
+        with self.assertRaisesRegex(archive.InstallError, "Missing stock layout preview"):
+            archive.install(self.home, False)
+        self.assertFalse((self.home / archive.MANIFEST).exists())
+
+    def test_manifest_without_variant_remains_orca(self):
+        archive.install(self.home, False, "orca")
+        manifest_path = self.home / archive.MANIFEST
+        manifest = json.loads(manifest_path.read_text())
+        del manifest["variant"]
+        manifest_path.write_text(json.dumps(manifest))
+        archive.install(self.home, False)  # legacy manifest inferred as Orca
+        updated = json.loads(manifest_path.read_text())
+        self.assertEqual(updated["variant"], "orca")
+        self.assertTrue((self.home / "layouts" / "archive.json").exists())
+        self.assertFalse((self.home / "layouts" / "archive-stock.json").exists())
 
     def test_collision_refuses_any_existing_mod_even_identical(self):
         folder = self.home / "mods" / "archive-sidebar"
@@ -61,18 +123,18 @@ class InstallerTests(unittest.TestCase):
         marker = folder / "main.js"
         marker.write_bytes(b"user owned")
         with self.assertRaisesRegex(archive.InstallError, "occupied"):
-            archive.install(self.home, False)
+            archive.install(self.home, False, "orca")
         self.assertEqual(marker.read_bytes(), b"user owned")
         self.assertFalse((self.home / archive.MANIFEST).exists())
 
     def test_missing_dependency_fails_before_copy(self):
         (self.home / "mods" / "my-tabs" / "main.js").unlink()
         with self.assertRaisesRegex(archive.InstallError, "my-tabs"):
-            archive.install(self.home, False)
+            archive.install(self.home, False, "orca")
         self.assertFalse((self.home / "layouts" / "archive.json").exists())
 
     def test_changed_owned_file_blocks_uninstall(self):
-        archive.install(self.home, False)
+        archive.install(self.home, False, "orca")
         target = self.home / "mods" / "archive-sidebar" / "main.js"
         target.write_bytes(b"personal edit")
         with self.assertRaisesRegex(archive.InstallError, "changed"):
@@ -82,7 +144,7 @@ class InstallerTests(unittest.TestCase):
 
     def test_key_patch_adds_only_free_binding_then_removes_its_own(self):
         (self.package / "keys.patch.json").write_text(json.dumps({"global": {"cmd-shift-a": "mod.open:space-archive"}}))
-        archive.install(self.home, False)
+        archive.install(self.home, False, "orca")
         keys = json.loads((self.home / "keys.json").read_text())
         self.assertEqual(keys["global"]["cmd-p"], "mod.open:picker")
         self.assertEqual(keys["global"]["cmd-shift-a"], "mod.open:space-archive")
@@ -92,12 +154,12 @@ class InstallerTests(unittest.TestCase):
     def test_key_collision_fails_before_copy(self):
         (self.package / "keys.patch.json").write_text(json.dumps({"global": {"cmd-p": "mod.open:space-archive"}}))
         with self.assertRaisesRegex(archive.InstallError, "collision"):
-            archive.install(self.home, False)
+            archive.install(self.home, False, "orca")
         self.assertFalse((self.home / "layouts" / "archive.json").exists())
 
     def test_uninstall_keeps_unrelated_key_edits_after_install(self):
         (self.package / "keys.patch.json").write_text(json.dumps({"layout:archive": {"cmd-p": "mod.open:archive-picker"}}))
-        archive.install(self.home, False)
+        archive.install(self.home, False, "orca")
         keys = json.loads((self.home / "keys.json").read_text())
         keys["global"]["cmd-x"] = "personal.command"
         (self.home / "keys.json").write_text(json.dumps(keys))
@@ -117,14 +179,14 @@ class InstallerTests(unittest.TestCase):
 
         with patch.object(archive, "atomic_write", side_effect=fail_manifest):
             with self.assertRaisesRegex(OSError, "simulated disk error"):
-                archive.install(self.home, False)
+                archive.install(self.home, False, "orca")
         self.assertFalse((self.home / "layouts" / "archive.json").exists())
         self.assertFalse((self.home / "mods" / "space-archive" / "main.js").exists())
         self.assertEqual((self.home / "keys.json").read_bytes(), self.keys)
         self.assertFalse((self.home / archive.MANIFEST).exists())
 
     def test_activate_records_previous_and_uninstall_switches_before_removing(self):
-        archive.install(self.home, False)
+        archive.install(self.home, False, "orca")
         with patch.object(archive, "switch") as switch:
             archive.activate(self.home, False)
             switch.assert_called_once_with(self.home, "archive")
@@ -137,7 +199,7 @@ class InstallerTests(unittest.TestCase):
             switch.assert_called_once_with(self.home, "main")
 
     def test_uninstall_preserves_generated_and_user_files_then_reinstalls(self):
-        archive.install(self.home, False)
+        archive.install(self.home, False, "orca")
         generated = self.home / "mods" / "archive-sidebar" / "gpui-kit.d.ts"
         generated.write_bytes(b"app generated types")
         (self.home / "mods" / "archive-picker" / "jsconfig.json").write_bytes(b"app generated config")
@@ -158,12 +220,12 @@ class InstallerTests(unittest.TestCase):
         self.assertEqual(outside.read_bytes(), b"outside")
         for name in archive.MODS:
             self.assertFalse((self.home / "mods" / name).exists())
-        archive.install(self.home, False)
+        archive.install(self.home, False, "orca")
         self.assertTrue((self.home / "mods" / "space-archive" / "main.js").exists())
         self.assertEqual((backup / "space-archive" / "notes" / "user.txt").read_bytes(), b"keep this")
 
     def test_symlinked_backup_root_blocks_uninstall_before_changes(self):
-        archive.install(self.home, False)
+        archive.install(self.home, False, "orca")
         elsewhere = self.home.parent / "elsewhere"
         elsewhere.mkdir()
         (self.home / ".herdr-archive-backups").symlink_to(elsewhere, target_is_directory=True)

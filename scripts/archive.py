@@ -16,6 +16,11 @@ import tempfile
 ROOT = Path(__file__).resolve().parent.parent
 MODS = ("archive-sidebar", "archive-menu", "archive-picker", "archive-chrome", "space-archive")
 REQUIRED_MODS = ("better-changes", "desktop-notifications", "files-open-with", "hibernate", "live-ports", "my-pane", "my-status", "my-tabs", "resources", "sidebar-nav", "t3-actions", "usage-limits", "project-settings", "my-worktree", "new-worktree")
+STOCK_REQUIRED_MODS = ("tabs", "pane", "files", "changes", "workspace-status", "workspace-chrome", "worktree")
+VARIANTS = {
+    "stock": {"layout": "archive-stock", "mods": ("archive-stock", "space-archive"), "keys": "keys.stock.patch.json", "required": STOCK_REQUIRED_MODS},
+    "orca": {"layout": "archive", "mods": MODS, "keys": "keys.patch.json", "required": REQUIRED_MODS},
+}
 MANIFEST = ".herdr-archive-install.json"
 SCHEMA = 1
 
@@ -54,12 +59,28 @@ def safe_parent(path: Path, home: Path) -> None:
         parent = parent.parent
 
 
-def package_files() -> dict[str, bytes]:
-    paths = [ROOT / "layouts" / "archive.json"]
-    preview = ROOT / "layouts" / "archive.svg"
+def variant_config(variant: str) -> dict:
+    try:
+        return VARIANTS[variant]
+    except KeyError as exc:
+        raise InstallError(f"Unknown variant: {variant}") from exc
+
+
+def installed_variant(manifest: dict) -> str:
+    variant = manifest.get("variant", "orca")
+    variant_config(variant)
+    return variant
+
+
+def package_files(variant: str) -> dict[str, bytes]:
+    config = variant_config(variant)
+    paths = [ROOT / "layouts" / f"{config['layout']}.json"]
+    preview = ROOT / "layouts" / f"{config['layout']}.svg"
+    if variant == "stock" and not preview.is_file():
+        raise InstallError(f"Missing stock layout preview: {preview}")
     if preview.is_file():
         paths.append(preview)
-    for name in MODS:
+    for name in config["mods"]:
         folder = ROOT / "mods" / name
         if not folder.is_dir() or folder.is_symlink():
             raise InstallError(f"Missing or unsafe mod folder: {folder}")
@@ -111,8 +132,8 @@ def atomic_write(path: Path, content: bytes) -> None:
         temp.unlink(missing_ok=True)
 
 
-def key_changes(home: Path, manifest: dict | None):
-    patch_path = ROOT / "keys.patch.json"
+def key_changes(home: Path, manifest: dict | None, variant: str):
+    patch_path = ROOT / variant_config(variant)["keys"]
     if not patch_path.exists():
         return None, None
     patch = read_json(patch_path)
@@ -145,10 +166,16 @@ def key_changes(home: Path, manifest: dict | None):
     return None, prior
 
 
-def install(home: Path, dry_run: bool) -> None:
-    sources = package_files()
+def install(home: Path, dry_run: bool, variant: str | None = None) -> None:
+    manifest = load_manifest(home)
+    existing_variant = installed_variant(manifest) if manifest else None
+    variant = variant or existing_variant or "stock"
+    config = variant_config(variant)
+    if existing_variant and variant != existing_variant:
+        raise InstallError(f"{existing_variant} is installed; uninstall before installing {variant}")
+    sources = package_files(variant)
     missing = []
-    for name in REQUIRED_MODS:
+    for name in config["required"]:
         entry = home / "mods" / name / "main.js"
         safe_parent(entry, home)
         safe_file(entry)
@@ -156,13 +183,12 @@ def install(home: Path, dry_run: bool) -> None:
             missing.append(name)
     if missing:
         raise InstallError("Missing required Orca mods: " + ", ".join(missing))
-    manifest = load_manifest(home)
     if manifest:
         verify_owned(home, manifest)
         if set(manifest["files"]) != set(sources):
             raise InstallError("Package file list changed; uninstall then reinstall")
     else:
-        for name in MODS:
+        for name in config["mods"]:
             folder = home / "mods" / name
             safe_parent(folder / "main.js", home)
             if folder.exists() or folder.is_symlink():
@@ -173,11 +199,11 @@ def install(home: Path, dry_run: bool) -> None:
         safe_file(target)
         if manifest is None and target.exists():
             raise InstallError(f"Name already occupied: {target}")
-    keys_updated, new_keys = key_changes(home, manifest)
+    keys_updated, new_keys = key_changes(home, manifest, variant)
     owned_keys = json.loads(json.dumps((manifest or {}).get("keys", {})))
     for section, binds in (new_keys or {}).items():
         owned_keys.setdefault(section, {}).update(binds)
-    next_manifest = {"schema": SCHEMA, "package": "herdr-archive", "files": {rel: digest(data) for rel, data in sources.items()}, "keys": owned_keys, "previous_layout": (manifest or {}).get("previous_layout")}
+    next_manifest = {"schema": SCHEMA, "package": "herdr-archive", "variant": variant, "files": {rel: digest(data) for rel, data in sources.items()}, "keys": owned_keys, "previous_layout": (manifest or {}).get("previous_layout")}
     next_manifest["created_key_sections"] = (manifest or {}).get("created_key_sections", [])
     if keys_updated is not None:
         if manifest is None:
@@ -191,7 +217,7 @@ def install(home: Path, dry_run: bool) -> None:
                 next_manifest[field] = manifest[field]
     changes = [rel for rel, content in sources.items() if not (home / rel).exists() or (home / rel).read_bytes() != content]
     if dry_run:
-        print(f"Would install {len(changes)} files in {home}; {sum(len(v) for v in (new_keys or {}).values())} new key bindings")
+        print(f"Would install {variant}: {len(changes)} files in {home}; {sum(len(v) for v in (new_keys or {}).values())} new key bindings")
         return
     backups = {rel: (home / rel).read_bytes() for rel in changes if (home / rel).exists()}
     keys_backup = (home / "keys.json").read_bytes() if keys_updated is not None else None
@@ -210,7 +236,7 @@ def install(home: Path, dry_run: bool) -> None:
             else:
                 (home / rel).unlink(missing_ok=True)
         raise
-    print(f"Installed Herdr Archive in {home} ({len(changes)} file changes)")
+    print(f"Installed Herdr Archive ({variant}) in {home} ({len(changes)} file changes)")
 
 
 def active_layout(home: Path) -> str | None:
@@ -235,28 +261,30 @@ def activate(home: Path, dry_run: bool) -> None:
     if not manifest:
         raise InstallError("Install first")
     verify_owned(home, manifest)
+    variant = installed_variant(manifest)
+    layout_name = variant_config(variant)["layout"]
     current = active_layout(home)
     if dry_run:
-        print(f"Would switch {current or '(unknown)'} to archive")
+        print(f"Would switch {current or '(unknown)'} to {layout_name}")
         return
-    if current == "archive":
+    if current == layout_name:
         print("Archive is already active")
         return
     if not current:
         raise InstallError("Cannot record previous layout from shared.json")
     manifest["previous_layout"] = current
     atomic_write(home / MANIFEST, encoded(manifest))
-    switch(home, "archive")
+    switch(home, layout_name)
     print("Activated Archive")
 
 
-def preserve_remaining_mod_dirs(home: Path) -> Path | None:
+def preserve_remaining_mod_dirs(home: Path, variant: str) -> Path | None:
     """Move whole directories with non-owned files aside, without following links."""
     backup_base = home / ".herdr-archive-backups"
     if backup_base.is_symlink() or (backup_base.exists() and not backup_base.is_dir()):
         raise InstallError(f"Unsafe backup directory: {backup_base}")
     backup_run = None
-    for name in MODS:
+    for name in variant_config(variant)["mods"]:
         folder = home / "mods" / name
         if not folder.exists() and not folder.is_symlink():
             continue
@@ -290,9 +318,11 @@ def uninstall(home: Path, dry_run: bool) -> None:
         print("Herdr Archive is not installed")
         return
     verify_owned(home, manifest)
+    variant = installed_variant(manifest)
+    layout_name = variant_config(variant)["layout"]
     current = active_layout(home)
     previous = manifest.get("previous_layout")
-    if current == "archive" and (not isinstance(previous, str) or not (home / "layouts" / f"{previous}.json").is_file()):
+    if current == layout_name and (not isinstance(previous, str) or not (home / "layouts" / f"{previous}.json").is_file()):
         raise InstallError("Archive is active and no previous layout is available; switch layouts first")
     backup_base = home / ".herdr-archive-backups"
     if backup_base.is_symlink() or (backup_base.exists() and not backup_base.is_dir()):
@@ -322,9 +352,9 @@ def uninstall(home: Path, dry_run: bool) -> None:
         else:
             key_bytes = encoded(key_data)
     if dry_run:
-        print(f"Would remove {len(manifest['files'])} owned files; active={current == 'archive'}")
+        print(f"Would remove {variant}: {len(manifest['files'])} owned files; active={current == layout_name}")
         return
-    if current == "archive":
+    if current == layout_name:
         switch(home, previous)
     if key_bytes is not None:
         atomic_write(home / "keys.json", key_bytes)
@@ -335,7 +365,7 @@ def uninstall(home: Path, dry_run: bool) -> None:
         if digest(target.read_bytes()) != manifest["files"][rel]:
             raise InstallError(f"Installed file changed during uninstall: {target}")
         target.unlink()
-    backup_run = preserve_remaining_mod_dirs(home)
+    backup_run = preserve_remaining_mod_dirs(home, variant)
     (home / MANIFEST).unlink()
     print("Uninstalled Herdr Archive; shared state was preserved" + (f"; remaining mod files saved in {backup_run}" if backup_run else ""))
 
@@ -343,13 +373,16 @@ def uninstall(home: Path, dry_run: bool) -> None:
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("command", choices=("install", "activate", "uninstall", "status"))
+    parser.add_argument("--variant", choices=tuple(VARIANTS), help="Install stock or Orca variant (default: stock for new installs, existing variant for updates)")
     parser.add_argument("--home", type=Path, default=Path.home() / ".config" / "herdr-app", help="Herdr profile directory")
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args(argv)
+    if args.variant is not None and args.command != "install":
+        parser.error("--variant applies only to install; other commands use the installed manifest")
     home = args.home.expanduser().resolve()
     try:
         if args.command == "install":
-            install(home, args.dry_run)
+            install(home, args.dry_run, args.variant)
         elif args.command == "activate":
             activate(home, args.dry_run)
         elif args.command == "uninstall":
@@ -358,7 +391,7 @@ def main(argv=None) -> int:
             manifest = load_manifest(home)
             if manifest:
                 verify_owned(home, manifest)
-            print(json.dumps({"installed": bool(manifest), "active_layout": active_layout(home), "files": len(manifest["files"]) if manifest else 0}))
+            print(json.dumps({"installed": bool(manifest), "variant": installed_variant(manifest) if manifest else None, "active_layout": active_layout(home), "files": len(manifest["files"]) if manifest else 0}))
     except InstallError as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 1

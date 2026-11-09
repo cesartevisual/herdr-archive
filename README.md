@@ -1,53 +1,43 @@
 # Herdr Archive
 
-Archive spaces in a personal Herdr layout and bring them back later. Archived
-spaces stay in Herdr and keep their terminals and agents; Archive hides them
-from the sidebar and picker. The archive browser groups them by repository and
-machine, supports search, and restores one or several spaces. A compact Archive
-control remains in the layout.
+Archive Herdr spaces without stopping their terminals or agents. Archived spaces leave everyday navigation and stay searchable in a browser where you can restore a row, a repository group, or all shown results.
 
 ![Herdr Archive](preview.png)
 
-This release targets **Herdr app 0.1.14 with the Orca layout**. It
-is not a standalone layout for a fresh Herdr installation. The installer
-checks for these existing Orca mods before copying anything:
-
-`better-changes`, `desktop-notifications`, `files-open-with`, `hibernate`,
-`live-ports`, `my-pane`, `my-status`, `my-tabs`, `resources`, `sidebar-nav`,
-`t3-actions`, `usage-limits`, `project-settings`, `my-worktree`, and
-`new-worktree`.
+The **stock** variant is the default for a new install. It uses Herdr 0.1.14's shipped mods and needs no Orca setup. The optional **Orca** variant keeps the personal Orca layout and its custom controls.
 
 ## Install
 
-Install [Orca for Herdr](https://github.com/VladTemp27/herdr-orca) and its
-[Better Changes dependency](https://github.com/munza/herdr-mods/tree/main/better-changes)
-first, following their installation instructions. Better Config is recommended
-by Orca for settings. This repository adds Archive to that setup; it does not
-bundle those dependency mods or patch Herdr itself.
-
-Use Python 3.10 or newer and Node.js 20 or newer for tests. Clone this repository:
+Use Python 3.10 or newer. Clone this repository, then run:
 
 ```sh
 git clone https://github.com/cesartevisual/herdr-archive.git
 cd herdr-archive
-```
-
-Then:
-
-```sh
 python3 scripts/archive.py install --dry-run
 python3 scripts/archive.py install
+herdr-app check ~/.config/herdr-app/mods/archive-stock
 herdr-app check ~/.config/herdr-app/mods/space-archive
 python3 scripts/archive.py activate
 ```
 
-Pass `--home /path/to/profile` to target another Herdr profile. `activate`
-uses `herdr-app do layout.switch` and records the previous layout for removal.
-Check the new layout and mods in the running app before activating. The
-installer does not edit `shared.json` or the signed app. It only installs
-`layouts/archive.json`, its preview SVG, the five `mods/archive-*` / `mods/space-archive`
-folders, and the entries in `keys.patch.json` that are free in `keys.json`.
-If a destination or shortcut is occupied, it stops without overwriting it.
+The stock installer checks for Herdr's shipped `tabs`, `pane`, `files`, `changes`, `workspace-status`, `workspace-chrome`, and `worktree` mods. It installs `layouts/archive-stock.json` and its SVG preview, `mods/archive-stock/`, `mods/space-archive/`, and free layout-specific bindings from `keys.stock.patch.json`.
+
+For the Orca variant, first install [Orca for Herdr](https://github.com/VladTemp27/herdr-orca) and its [Better Changes dependency](https://github.com/munza/herdr-mods/tree/main/better-changes), then run:
+
+```sh
+python3 scripts/archive.py install --variant orca --dry-run
+python3 scripts/archive.py install --variant orca
+herdr-app check ~/.config/herdr-app/mods/archive-sidebar
+herdr-app check ~/.config/herdr-app/mods/archive-menu
+herdr-app check ~/.config/herdr-app/mods/archive-picker
+herdr-app check ~/.config/herdr-app/mods/archive-chrome
+herdr-app check ~/.config/herdr-app/mods/space-archive
+python3 scripts/archive.py activate
+```
+
+The Orca variant requires these existing custom mods: `better-changes`, `desktop-notifications`, `files-open-with`, `hibernate`, `live-ports`, `my-pane`, `my-status`, `my-tabs`, `resources`, `sidebar-nav`, `t3-actions`, `usage-limits`, `project-settings`, `my-worktree`, and `new-worktree`. The installer checks them before copying files.
+
+Pass `--home /path/to/profile` to any command to target another Herdr profile. `activate` switches layouts through `herdr-app do layout.switch` and records the previous layout. An existing install retains its variant on repeat `install`; a legacy manifest without a variant remains Orca. Uninstall before changing variants.
 
 ```sh
 python3 scripts/archive.py status
@@ -55,53 +45,24 @@ python3 scripts/archive.py uninstall --dry-run
 python3 scripts/archive.py uninstall
 ```
 
-Uninstall removes only files whose hashes still match its ownership manifest
-and its own shortcut entries. A personal edit stops removal so it cannot be
-lost. When Archive is active, uninstall switches to the recorded previous
-layout first. It leaves all shared metadata and archived records intact, so
-reinstalling retains the archive. To remove archived metadata, use Herdr's
-own state controls deliberately; this package does not clear it.
+The installer never overwrites an occupied mod, layout, or key binding. It tracks installed file hashes and stops uninstall if one was edited. Uninstall switches back only when its layout is active, removes owned files and bindings, and preserves Herdr's `shared.json`. Herdr-generated editor files and user additions left in installed mod folders move to a unique `.herdr-archive-backups/uninstall-*` directory under the profile, freeing the mod names for reinstall. Archived records remain in shared state after uninstall.
 
 ## Use
 
-- Open **Space archive** from the sidebar Archive control, the space menu, or
-  the picker (`cmd-p` in the Archive layout).
-- Archive a space from its menu.
-- Search archived spaces by name, folder, branch, repository, or machine, and
-  restore a row, a group, or all shown results. A temporarily unavailable remote space remains in
-  the archive until it returns.
-- `ctrl-1` through `ctrl-9` select visible spaces in the Archive sidebar.
+Open **Space archive** from the layout's Archive control. Archive a live space from its space menu. Search by space name, folder, branch, repository, or machine; restore a row, a group, or the shown results. A remote space that is unavailable stays archived until it returns. The variants provide their own layout-specific shortcuts in `keys.stock.patch.json` and `keys.patch.json`.
 
-The archive stores only space identifiers and display metadata in Herdr shared
-state under `space-archive.v1`. Archiving does not close, delete, or stop a
-space, terminal, agent, checkout, or worktree. No network access is added by
-the archive feature. The inherited Orca mods may run commands or access
-services; see their own sources and settings. The menu's existing worktree
-actions run `git`.
+Archive metadata lives under the `space-archive.v1` shared-state key. Archiving does not close, delete, or stop a space, terminal, agent, checkout, or worktree. The archive feature adds no network request. The optional Orca variant inherits mods that may run commands or access services; consult their sources and settings. Its menu uses `git` for existing worktree actions.
 
-## Development
+## Development and provenance
 
 ```sh
 npm test
 ```
 
-The Node tests cover state normalization, archive and restore, search, and
-grouping. Python tests exercise the installer against temporary profiles,
-including collisions, repeat installs, shortcut ownership, and removal after
-local edits. The files in `mods/` are Herdr GPUI JavaScript, not browser code.
+The Node tests cover archive state, search, and grouping. Python tests exercise both installer variants against temporary profiles, including collisions, repeat installs, manifest compatibility, shortcut ownership, generated-file backups, and removal after local edits. The mods use Herdr's native GPUI JavaScript API.
 
-See [RECIPE.md](RECIPE.md) for the visual and behavioral build brief,
-[THIRD_PARTY.md](THIRD_PARTY.md) for verified source revisions, and
-[NOTICE](NOTICE) for attribution. The code is Apache-2.0; bundled icons retain
-their ISC/MIT notices.
+See [RECIPE.md](RECIPE.md) for the build brief, [THIRD_PARTY.md](THIRD_PARTY.md) for source revisions, and [NOTICE](NOTICE) for attribution. The repository code is Apache-2.0; bundled icons retain their ISC/MIT notices.
 
-## Contributing to the Herdr ecosystem
+## Herdr ecosystem
 
-Herdr recommends publishing new UI features as custom mods and layouts. This
-repository is tagged `herdr-layout` and `herdr-mod` for gallery discovery.
-It is an Orca-compatible extension, with no changes to Herdr core. Report
-Archive bugs here; use [Herdr's contribution guide](https://github.com/herdrdev/herdr-app/blob/master/CONTRIBUTING.md)
-for missing core APIs or Herdr bugs. Pull requests should include the relevant
-tests and native mod checks.
-
-Uninstall preserves generated editor files and any extra user files under `.herdr-archive-backups/uninstall-*` in the profile, keeping the mod names free for reinstall. Archive metadata remains in `shared.json`.
+This repository is tagged `herdr-layout` and `herdr-mod` for gallery discovery. It changes personal layout and mod files, not Herdr core. Report Archive bugs here; use [Herdr's contribution guide](https://github.com/herdrdev/herdr-app/blob/master/CONTRIBUTING.md) for core API requests or Herdr bugs. Pull requests should include relevant tests and native mod checks.
